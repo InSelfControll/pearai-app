@@ -1,0 +1,61 @@
+name: Build PearAI Linux  
+  
+on:  
+  workflow_dispatch:  # This makes it manual-only  
+  
+jobs:  
+  build:  
+    runs-on: ubuntu-latest  
+  
+    strategy:  
+      matrix:  
+        node-version: [18.x, 20.x, 22.x]  
+  
+    steps:  
+    - uses: actions/checkout@v4  
+      with:  
+        submodules: recursive  
+  
+    - name: Use Node.js ${{ matrix.node-version }}  
+      uses: actions/setup-node@v4  
+      with:  
+        node-version: ${{ matrix.node-version }}  
+  
+    - name: Setup Python  
+      uses: actions/setup-python@v4  
+      with:  
+        python-version: '3.11'  
+  
+    - name: Install Rust  
+      uses: actions-rs/toolchain@v1  
+      with:  
+        toolchain: stable  
+        override: true  
+  
+    - name: Install System Dependencies  
+      run: |  
+        sudo apt-get update  
+        sudo apt-get install -y libx11-dev libxkbfile-dev pkg-config build-essential  
+  
+    - name: Install Yarn  
+      run: |  
+        npm install -g yarn@1  
+        yarn --version  
+  
+    - name: Setup Environment  
+      run: |  
+        chmod +x ./scripts/pearai/setup-environment.sh  
+        ./scripts/pearai/setup-environment.sh  
+  
+    - name: Build  
+      run: |  
+        chmod +x ./scripts/pearai/install-dependencies.sh  
+        ./scripts/pearai/install-dependencies.sh  
+        yarn gulp vscode-linux-x64  
+  
+    - name: Upload Artifact  
+      uses: actions/upload-artifact@v3  
+      with:  
+        name: pearai-linux-x64-node-${{ matrix.node-version }}  
+        path: .build/linux-x64  
+  
